@@ -1,12 +1,5 @@
 typing
-python-jose
 requests
-PyYAML
-psycopg2
-tzlocal
 datetime
-python-dateutil
-sshtunnel
-memory_profiler
-discord.py
 urllib3
+python-dateutil

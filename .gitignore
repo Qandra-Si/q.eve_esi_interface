@@ -142,21 +142,3 @@ dmypy.json
 # Git patches
 *.diff
 *.patch
-
-# Q.Industrialist
-/static_data_interface
-/image_export_collection
-/favicon
-/bootstrap
-/jquery
-/q_*_settings.py
-/.*_cache
-/*_cache
-/debug
-/.q_industrialist
-/.q_individualist
-/*.~json
-/*.html
-/*.csv
-/database/*.dmp
-/database/*.dump
