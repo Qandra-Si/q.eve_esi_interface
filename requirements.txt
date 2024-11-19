@@ -1,5 +1,6 @@
 typing
 requests
+python-jose
 datetime
 urllib3
 python-dateutil
