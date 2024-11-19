@@ -139,7 +139,10 @@ class EveESIAuth:
             return True
         if not ("scope" in auth_cache):
             return False
-        return EveESIAuth.__intersection(auth_cache["scope"], scope) == scope
+        if type(auth_cache["scope"]) is str:
+            return EveESIAuth.__intersection([auth_cache["scope"]], scope) == scope
+        else:
+            return EveESIAuth.__intersection(auth_cache["scope"], scope) == scope
 
     def make_cache(self, access_token, refresh_token):
         self.__auth_cache = {
