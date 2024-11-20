@@ -18,7 +18,7 @@ import base64
 import hashlib
 import secrets
 import time
-#import datetime
+import datetime
 from dateutil.parser import parse as parsedate
 
 from .auth_cache import EveESIAuth
@@ -43,12 +43,12 @@ class EveESIClient:
                 **pool_kwargs)
 
     def __init__(self,
-                 auth_cache,
+                 auth_cache: EveESIAuth,
                  client_id: str,
                  keep_alive: bool,
                  debug: bool = False,
                  logger: bool = True,
-                 user_agent=None,
+                 user_agent: typing.Optional[str] = None,
                  restrict_tls13: bool = False):
         """ constructor
 
@@ -68,18 +68,18 @@ class EveESIClient:
         # экземпляр объекта, кеширующий аутентификационные токену и хранящий их в указанной директории
         if not isinstance(auth_cache, EveESIAuth):
             raise EveOnlineClientError("You should use EveESIAuth to configure client")
-        self.__auth_cache = auth_cache
+        self.__auth_cache: EveESIAuth = auth_cache
 
         # для корректной работы с ESI Swagger Interface следует указать User-Agent в заголовках запросов
-        self.__user_agent = user_agent
+        self.__user_agent: typing.Optional[str] = user_agent
 
         # данные-состояния, которые были получены во время обработки http-запросов
-        self.__last_modified = None
+        self.__last_modified: typing.Optional[datetime.datetime] = None
 
         # резервируем session-объект, для того чтобы не заниматься переподключениями, а пользоваться keep-alive
         self.__keep_alive: bool = keep_alive
         self.__restrict_tls13: bool = restrict_tls13
-        self.__session = None
+        self.__session: typing.Optional[requests.Session] = None
         self.__adapter: typing.Optional[EveESIClient.TLSAdapter] = None
 
     def __del__(self):
@@ -90,51 +90,51 @@ class EveESIClient:
             del self.__adapter
 
     @property
-    def auth_cache(self):
+    def auth_cache(self) -> EveESIAuth:
         """ authz tokens storage
         """
         return self.__auth_cache
 
     @property
-    def client_callback_url(self):
+    def client_callback_url(self) -> str:
         """ url to send back authorization code
         """
         return self.__client_callback_url
 
-    def setup_client_callback_url(self, client_callback_url):
+    def setup_client_callback_url(self, client_callback_url: str) -> None:
         self.__client_callback_url = client_callback_url
 
     @property
-    def debug(self):
+    def debug(self) -> bool:
         """ flag which says that we are in debug mode
         """
         return self.__debug
 
-    def enable_debug(self):
+    def enable_debug(self) -> None:
         self.__debug = True
 
-    def disable_debug(self):
+    def disable_debug(self) -> None:
         self.__debug = False
 
     @property
-    def logger(self):
+    def logger(self) -> bool:
         """ flag which says that we are in logger mode
         """
         return self.__logger
 
-    def enable_logger(self):
+    def enable_logger(self) -> None:
         self.__logger = True
 
-    def disable_logger(self):
+    def disable_logger(self) -> None:
         self.__logger = False
 
     @property
-    def user_agent(self):
+    def user_agent(self) -> str:
         """ User-Agent which used in http requests to CCP Servers
         """
         return self.__user_agent
 
-    def setup_user_agent(self, user_agent):
+    def setup_user_agent(self, user_agent: str) -> None:
         """ configures User-Agent which used in http requests to CCP Servers, foe example:
         'https://github.com/Qandra-Si/ Maintainer: Qandra Si qandra.si@gmail.com'
 
@@ -143,7 +143,7 @@ class EveESIClient:
         self.__user_agent = user_agent
 
     @property
-    def last_modified(self):
+    def last_modified(self) -> typing.Optional[datetime.datetime]:
         """ Last-Modified property from http header
         :returns: :class:`datetime.datetime`
         """
@@ -274,8 +274,8 @@ class EveESIClient:
 
         return res
 
-    def send_esi_request_http(self, uri, etag, body=None):
-        headers = {
+    def send_esi_request_http(self, uri: str, etag: typing.Optional[str], body=None) -> requests.Response:
+        headers: typing.Dict[str, str] = {
             "Authorization": "Bearer {}".format(self.__auth_cache.access_token),
         }
         if not (etag is None) and (body is None):
@@ -283,19 +283,19 @@ class EveESIClient:
         if self.__user_agent:
             headers.update({"User-Agent": self.__user_agent})
 
-        res = None
-        http_connection_times = 0
-        self.__last_modified = None
-        requests_get_times = 0
-        timeout_connect = 3
-        timeout_read = 7
+        res: typing.Optional[requests.Response] = None
+        http_connection_times: int = 0
+        self.__last_modified: typing.Optional[datetime.datetime] = None
+        requests_get_times: int = 0
+        timeout_connect: int = 3
+        timeout_read: int = 7
         while True:
             try:
-                proxy_error_times = 0
-                throttle_error_times = 0
+                proxy_error_times: int = 0
+                throttle_error_times: int = 0
                 while True:
                     if body is None:
-                        requests_get_finished = False
+                        requests_get_finished: bool = False
                         while not requests_get_finished:
                             try:
                                 # при попытке загружать рыночные данные (их и только их) начинает зависать
@@ -423,7 +423,7 @@ class EveESIClient:
             break
         return res
 
-    def send_esi_request_json(self, uri, etag, body=None):
+    def send_esi_request_json(self, uri: str, etag: typing.Optional[str], body=None):
         return self.send_esi_request_http(uri, etag, body).json()
 
     @staticmethod

@@ -4,7 +4,7 @@ import json
 import os.path
 from pathlib import Path
 import requests
-#import datetime
+import datetime
 from dateutil.parser import parse as parsedate
 
 from .error import EveOnlineClientError
@@ -12,50 +12,50 @@ from .eve_esi_client import EveESIClient
 
 
 class EveOnlineInterface:
-    def __init__(self, client, scopes, cache_dir, offline_mode: bool = False):
+    def __init__(self, client: EveESIClient, scopes: typing.List[str], cache_dir: str, offline_mode: bool = False):
         """ constructor
 
         :param EveOnlineConfig config: configuration of Eve Online Client
         """
-        self.__server_url = "https://esi.evetech.net/latest/"
-        self.__scopes = scopes
+        self.__server_url: str = "https://esi.evetech.net/latest/"
+        self.__scopes: typing.List[str] = scopes
         self.__offline_mode: bool = offline_mode
 
-        self.__cache_dir = cache_dir  # {tmp_dir}/.esi_cache/
+        self.__cache_dir: str = cache_dir  # {tmp_dir}/.esi_cache/
         self.setup_cache_dir(cache_dir)
 
         if not isinstance(client, EveESIClient):
             raise EveOnlineClientError("You should use EveESIClient to configure interface")
-        self.__client = client
+        self.__client: EveESIClient = client
 
-        self.__is_last_data_updated = False
-        self.__last_modified = None
+        self.__is_last_data_updated: bool = False
+        self.__last_modified: typing.Optional[datetime.datetime] = None
 
     @property
-    def client(self):
+    def client(self) -> EveESIClient:
         """ Eve Online ESI Swagger https client implementation
         """
         return self.__client
 
     @property
-    def server_url(self):
+    def server_url(self) -> str:
         """ url to ESI Swagger interface (CCP' servers)
         """
         return self.__server_url
 
     @property
-    def scopes(self):
+    def scopes(self) -> typing.List[str]:
         """ Eve Online Application client scopes
         """
         return self.__scopes
 
     @property
-    def cache_dir(self):
+    def cache_dir(self) -> str:
         """ path to directory with cache files
         """
         return self.__cache_dir
 
-    def setup_cache_dir(self, cache_dir):
+    def setup_cache_dir(self, cache_dir) -> None:
         """ configures path to directory where esi/http cache files stored
         """
         if cache_dir[-1:] == '/':
@@ -64,32 +64,32 @@ class EveOnlineInterface:
         Path(self.cache_dir).mkdir(parents=True, exist_ok=True)
 
     @property
-    def offline_mode(self):
+    def offline_mode(self) -> bool:
         """ flag which says that we are working offline, so eve_esi_interface will read data from file system
         (to optimize interaction with CCP servers)
         """
         return self.__offline_mode
 
     @property
-    def online_mode(self):
+    def online_mode(self) -> bool:
         """ flag which says that we are working offline, so eve_esi_interface will download & save data from CCP servers
         """
         return not self.__offline_mode
 
     @property
-    def is_last_data_updated(self):
+    def is_last_data_updated(self) -> bool:
         """ flag which says that we are not fetch data from CCP server because cached data used
         """
         return self.__is_last_data_updated
 
     @property
-    def last_modified(self):
+    def last_modified(self) -> typing.Optional[datetime.datetime]:
         """ Last-Modified property from http header
         :returns: :class:`datetime.datetime`
         """
         return self.__last_modified
 
-    def __get_f_name(self, url):
+    def __get_f_name(self, url: str) -> str:
         """ converts urls to filename to store it in filesystem, for example:
         url=/corporations/98553333/assets/names/
         filename=.cache_corporations_98553333_assets_names.json
@@ -103,14 +103,14 @@ class EveOnlineInterface:
         url = url.replace('=', '-')
         url = url.replace('?', '')
         url = url.replace('&', '.')
-        f_name = '{dir}/.cache_{nm}.json'.format(dir=self.__cache_dir, nm=url)
+        f_name: str = '{dir}/.cache_{nm}.json'.format(dir=self.__cache_dir, nm=url)
         return f_name
 
     @staticmethod
-    def __get_cached_headers(data):
+    def __get_cached_headers(data) -> typing.Dict[str, str]:
         """ gets http response headers and converts it data stored on cache files
         """
-        cached_headers = {}
+        cached_headers: typing.Dict[str, str] = {}
         if "ETag" in data.headers:
             cached_headers.update({"etag": data.headers["ETag"]})
         if "Date" in data.headers:
@@ -121,12 +121,12 @@ class EveOnlineInterface:
             cached_headers.update({"last-modified": data.headers["Last-Modified"]})
         return cached_headers
 
-    def __dump_cache_into_file(self, url, data_headers, data_json):
+    def __dump_cache_into_file(self, url, data_headers, data_json) -> None:
         """ dumps data received from CCP Servers into cache files
         """
-        f_name = self.__get_f_name(url)
-        cache = {"headers": data_headers, "json": data_json}
-        s = json.dumps(cache, indent=1, sort_keys=False)
+        f_name: str = self.__get_f_name(url)
+        cache: typing.Dict[str, typing.Any] = {"headers": data_headers, "json": data_json}
+        s: str = json.dumps(cache, indent=1, sort_keys=False)
         with open(f_name, 'wt+', encoding='utf8') as f:
             try:
                 f.write(s)
@@ -135,9 +135,8 @@ class EveOnlineInterface:
         del s
         del cache
         del f_name
-        return
 
-    def __take_cache_from_file(self, url):
+    def __take_cache_from_file(self, url: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         """ reads cache data early received from CCP Servers
         """
         f_name = self.__get_f_name(url)
@@ -145,14 +144,14 @@ class EveOnlineInterface:
             with open(f_name, 'rt', encoding='utf8') as f:
                 try:
                     s = f.read()
-                    cache_data = (json.loads(s))
+                    cache_data: typing.Dict[str, typing.Any] = (json.loads(s))
                     return cache_data
                 finally:
                     f.close()
         return None
 
     @staticmethod
-    def __get_merged_pages(cached_data):
+    def __get_merged_pages(cached_data: typing.Dict[str, typing.Any]) -> typing.Optional[typing.List[typing.Any]]:
         if "json" in cached_data:
             merged = []
             for p in cached_data["json"]:
@@ -161,14 +160,14 @@ class EveOnlineInterface:
         return None
 
     @staticmethod
-    def __esi_raise_for_status(code, message):
+    def __esi_raise_for_status(code: int, message: str) -> None:
         """ generates HTTPError to emulate 403, 404 exceptions when working in offline mode
         """
         rsp = requests.Response()
         rsp.status_code = code
         raise requests.exceptions.HTTPError(message, response=rsp)
 
-    def get_esi_data(self, url, body=None, fully_trust_cache=False):
+    def get_esi_data(self, url: str, body=None, fully_trust_cache: bool = False):
         """ performs ESI GET/POST-requests in online mode,
         or returns early retrieved data when working on offline mode
 
@@ -176,14 +175,14 @@ class EveOnlineInterface:
         :param body: parameters to send to ESI API with POST request
         :param fully_trust_cache: if cache exists, trust it! (filesystem cache priority)
         """
-        cached_data = self.__take_cache_from_file(url)
+        cached_data: typing.Optional[typing.Dict[str, typing.Any]] = self.__take_cache_from_file(url)
         self.__is_last_data_updated = False
         self.__last_modified = None
         if not self.__offline_mode and fully_trust_cache and not (cached_data is None) and ("json" in cached_data):
             # иногда возникает ситуация, когда данные по указанному url не закачались (упали с ошибкой), и так
             # и будут вечно восстанавливаться из кеша, - все ошибки обновляем в online-режиме!
             if not ("Http-Error" in cached_data["headers"]):
-                url_time = cached_data["headers"].get("last-modified", None)
+                url_time: typing.Optional[str] = cached_data["headers"].get("last-modified", None)
                 if not (url_time is None):
                     self.__last_modified = parsedate(url_time)
                 return cached_data.get("json", None)
@@ -192,14 +191,14 @@ class EveOnlineInterface:
                 return None
             # Offline mode (выдаёт ранее сохранённый кэшированный набор json-данных)
             if "Http-Error" in cached_data["headers"]:
-                code = int(cached_data["headers"]["Http-Error"])
+                code: int = int(cached_data["headers"]["Http-Error"])
                 self.__esi_raise_for_status(
                     code,
                     '{} Client Error: Offline-cache for url: {}'.format(code, url))
             return cached_data.get("json", None)
         else:
             # Online mode (отправляем запрос, сохраняем кеш данных, перепроверяем по ETag обновления)
-            data_path = ("{srv}{url}".format(srv=self.server_url, url=url))
+            data_path: str = f"{self.server_url}{url}"
             # см. рекомендации по программированию тут
             # https://developers.eveonline.com/blog/article/esi-etag-best-practices
             if not (cached_data is None) and \
